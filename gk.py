@@ -71,23 +71,26 @@ if __name__ == '__main__':
 
     try:
         SHH_USERNAME = config.get('shh', 'username').strip('"').strip()
+        if debug : eprint("SHH_USERNAME: "+SHH_USERNAME)
     except:
         sys.exit("ERROR: username is mandatory")
 
     try:
-        SHH_PASSWORD = config.get('shh', 'username').strip('"').strip()
+        SHH_PASSWORD = config.get('shh', 'password').strip('"').strip()
+        # if debug : eprint("SHH_PASSWORD: "+SHH_PASSWORD)
     except:
         sys.exit("ERROR: username is mandatory")
 
-    # Create client object
     c = pysnow.client.Client(instance=SHH_INSTANCE, user=SHH_USERNAME, password=SHH_PASSWORD)
 
-    today = datetime.today()
-    sixty_days_ago = today - timedelta(days=60)
+    qb = (pysnow.QueryBuilder()
+            .field('assigned_to').is_empty()
+            .AND()
+            .field('assignment_group.name').equals('MS Team 2')
+            .AND()
+            .field('active').equals('true')
+            )
 
-    # Query incident records with number starting with 'INC0123', created between 60 days˓→ago and today.
-
-    qb = (pysnow.QueryBuilder().field('sys_created_on').between(sixty_days_ago, today))
     incident = c.resource(api_path='/table/incident')
     response = incident.get(query=qb)
 
