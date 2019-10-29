@@ -13,34 +13,6 @@ snow_username = ""
 snow_password = ""
 main_window = None
 
-def run_snow_incident_checks():
-    global snow_instance, snow_username, snow_password
-    while True:
-        c = pysnow.client.Client(instance=SHH_INSTANCE, user=SHH_USERNAME, password=SHH_PASSWORD)
-
-        qb = (pysnow.QueryBuilder()
-                .field('assigned_to').is_empty()
-                .AND()
-                .field('assignment_group.name').equals('MS Team 2')
-                .AND()
-                .field('active').equals('true')
-                )
-
-        incident = c.resource(api_path='/table/incident')
-        response = incident.get(query=qb)
-
-        incident_count = len(response.all())
-
-        #FIX THIS:
-        main_window.tray_icon.showMessage(
-            "Tray Program",
-            "Incident count: "+incident_count,
-            QSystemTrayIcon.Information,
-            2000
-        )
-
-        time.sleep(30)
-
 
 class Login(QtWidgets.QDialog):
     def __init__(self, parent=None):
@@ -75,6 +47,37 @@ class Login(QtWidgets.QDialog):
 class MainWindow(QMainWindow):
     check_box = None
     tray_icon = None
+
+    def run_snow_incident_checks(self):
+        global snow_instance, snow_username, snow_password
+        #while True:
+        c = pysnow.client.Client(instance=snow_instance, user=snow_username, password=snow_password)
+
+        qb = (pysnow.QueryBuilder()
+                .field('assigned_to').is_empty()
+                .AND()
+                .field('assignment_group.name').equals('MS Team 2')
+                .AND()
+                .field('active').equals('true')
+                )
+
+        incident = c.resource(api_path='/table/incident')
+        response = incident.get(query=qb)
+
+        incident_count = len(response.all())
+
+        if incident_count==0:
+            self.tray_icon.setIcon(self.style().standardIcon(QStyle.SP_DialogApplyButton))
+        else:
+            self.tray_icon.setIcon(self.style().standardIcon(QStyle.SP_MessageBoxCritical))
+
+        #FIX THIS:
+        self.tray_icon.showMessage(
+            "Tray Program",
+            "Incident count: "+str(incident_count),
+            QSystemTrayIcon.Information,
+            2000
+        )
 
     # Override the class constructor
     def __init__(self):
@@ -112,6 +115,8 @@ class MainWindow(QMainWindow):
         tray_menu.addAction(quit_action)
         self.tray_icon.setContextMenu(tray_menu)
         self.tray_icon.show()
+
+        self.run_snow_incident_checks()
 
     # Override closeEvent, to intercept the window closing event
     # The window will be closed only if there is no check mark in the check box
