@@ -4,6 +4,7 @@ import pysnow
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
+from PyQt5 import QtCore
 
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QGridLayout, QWidget, QCheckBox, QSystemTrayIcon, \
@@ -20,9 +21,18 @@ main_window = None
 class Login(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(Login, self).__init__(parent)
+
+        self.setWindowTitle("Login")
+
+        self.settings = QtCore.QSettings()
+
         self.textName = QtWidgets.QLineEdit(self)
         self.textPass = QtWidgets.QLineEdit(self)
         self.textPass.setEchoMode(QtWidgets.QLineEdit.Password)
+
+        self.textName.setText(self.settings.value("snow_username"))
+        self.textPass.setText(self.settings.value("snow_password"))
+
         self.buttonLogin = QtWidgets.QPushButton('Login', self)
         self.buttonLogin.clicked.connect(self.handleLogin)
         layout = QtWidgets.QVBoxLayout(self)
@@ -45,6 +55,10 @@ class Login(QtWidgets.QDialog):
         except Exception as e:
             QtWidgets.QMessageBox.warning(
                 self, 'Error', 'Bad user or password: '+str(e))
+
+        self.settings.setValue("snow_username", snow_username)
+        self.settings.setValue("snow_password", snow_password)
+        self.settings.sync()
 
 
 class FetchUnattendedIncidentsWorker(QRunnable):
@@ -164,13 +178,6 @@ class MainWindow(QMainWindow):
         if self.check_box.isChecked():
             event.ignore()
             self.hide()
-            self.tray_icon.showMessage(
-                "Tray Program",
-                "Application was minimized to Tray",
-                QSystemTrayIcon.Information,
-                2000
-            )
-
 
 if __name__ == "__main__":
     import sys
