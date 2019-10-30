@@ -148,15 +148,15 @@ class MainWindow(QMainWindow):
         self.tray_icon = QSystemTrayIcon(self)
         self.tray_icon.setIcon(self.style().standardIcon(QStyle.SP_BrowserReload))
 
-        show_action = QAction("Show", self)
-        quit_action = QAction("Exit", self)
-        hide_action = QAction("Hide", self)
         refresh_action = QAction("Refresh", self)
+        show_action = QAction("Show", self)
+        hide_action = QAction("Hide", self)
+        quit_action = QAction("Exit", self)
 
+        refresh_action.triggered.connect(self.refresh_unattended_incidents)
         show_action.triggered.connect(self.show)
         hide_action.triggered.connect(self.hide)
         quit_action.triggered.connect(qApp.quit)
-        refresh_action.triggered.connect(self.refresh_unattended_incidents)
 
         tray_menu = QMenu(parent=None)
         tray_menu.aboutToShow.connect(self.refresh_unattended_incidents)
