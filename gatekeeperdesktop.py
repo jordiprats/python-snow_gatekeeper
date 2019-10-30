@@ -144,7 +144,8 @@ class MainWindow(QMainWindow):
         quit_action.triggered.connect(qApp.quit)
         refresh_action.triggered.connect(self.refresh_unattended_incidents)
 
-        tray_menu = QMenu()
+        tray_menu = QMenu(parent=None)
+        tray_menu.aboutToShow.connect(self.refresh_unattended_incidents)
         tray_menu.addAction(refresh_action)
         tray_menu.addAction(show_action)
         tray_menu.addAction(hide_action)
