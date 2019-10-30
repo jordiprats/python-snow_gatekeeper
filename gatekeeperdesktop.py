@@ -52,10 +52,16 @@ class FetchUnattendedIncidentsWorker(QRunnable):
 
     def setMainWindow(self, MainWindow):
         self.MainWindow = MainWindow
+        self.refresh=False
+
+    def setRefresh(self, refresh):
+        self.refresh=refresh
 
     @pyqtSlot()
     def run(self):
         global snow_instance, snow_username, snow_password
+
+        self.refresh=False
 
         print("running fetch_incident_count")
 
@@ -88,17 +94,27 @@ class FetchUnattendedIncidentsWorker(QRunnable):
                 )
             self.MainWindow.tray_icon.show()
             print("Sleeping 60 seconds")
-            time.sleep(60)
+            for i in range(60):
+                if self.refresh:
+                    self.refresh=False
+                    break
+                else:
+                    time.sleep(1)
 
 class MainWindow(QMainWindow):
     check_box = None
     tray_icon = None
+
+    def refresh_unattended_incidents(self):
+        self.unattended_incidents_worker.setRefresh(True)
 
     # Override the class constructor
     def __init__(self):
         # Be sure to call the super class method
         QMainWindow.__init__(self)
         self.threadpool = QThreadPool()
+        self.unattended_incidents_worker = FetchUnattendedIncidentsWorker()
+        self.unattended_incidents_worker.setMainWindow(self)
 
         self.setMinimumSize(QSize(480, 80))             # Set sizes
         self.setWindowTitle("System Tray Application")  # Set a title
@@ -127,8 +143,10 @@ class MainWindow(QMainWindow):
         show_action.triggered.connect(self.show)
         hide_action.triggered.connect(self.hide)
         quit_action.triggered.connect(qApp.quit)
+        refresh_action.triggered.connect(self.refresh_unattended_incidents)
 
         tray_menu = QMenu()
+        tray_menu.addAction(refresh_action)
         tray_menu.addAction(show_action)
         tray_menu.addAction(hide_action)
         tray_menu.addAction(quit_action)
@@ -136,10 +154,8 @@ class MainWindow(QMainWindow):
         self.tray_icon.setContextMenu(tray_menu)
         self.tray_icon.show()
 
-        # self.run_snow_incident_checks()
-        unattended_incidents_worker = FetchUnattendedIncidentsWorker()
-        unattended_incidents_worker.setMainWindow(self)
-        self.threadpool.start(unattended_incidents_worker)
+        # run bg job
+        self.threadpool.start(self.unattended_incidents_worker)
 
 
     # Override closeEvent, to intercept the window closing event
