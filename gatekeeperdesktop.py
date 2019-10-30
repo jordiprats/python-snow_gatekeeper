@@ -57,7 +57,7 @@ class FetchUnattendedIncidentsWorker(QRunnable):
     def run(self):
         global snow_instance, snow_username, snow_password
 
-        print("running %fetch_incident_count%")
+        print("running fetch_incident_count")
 
         while True:
             print("checking incidents...")
@@ -86,6 +86,7 @@ class FetchUnattendedIncidentsWorker(QRunnable):
                 QSystemTrayIcon.Critical,
                 msecs=10000
                 )
+            self.MainWindow.tray_icon.show()
             print("Sleeping 60 seconds")
             time.sleep(60)
 
@@ -121,13 +122,17 @@ class MainWindow(QMainWindow):
         show_action = QAction("Show", self)
         quit_action = QAction("Exit", self)
         hide_action = QAction("Hide", self)
+        refresh_action = QAction("Refresh", self)
+
         show_action.triggered.connect(self.show)
         hide_action.triggered.connect(self.hide)
         quit_action.triggered.connect(qApp.quit)
+
         tray_menu = QMenu()
         tray_menu.addAction(show_action)
         tray_menu.addAction(hide_action)
         tray_menu.addAction(quit_action)
+
         self.tray_icon.setContextMenu(tray_menu)
         self.tray_icon.show()
 
