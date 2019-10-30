@@ -70,30 +70,33 @@ class FetchUnattendedIncidentsWorker(QRunnable):
     def setRefresh(self, refresh):
         self.refresh=refresh
 
+    def getUnattendedIncidentCount(self):
+        global snow_instance, snow_username, snow_password
+        c = pysnow.client.Client(instance=snow_instance, user=snow_username, password=snow_password)
+
+        qb = (pysnow.QueryBuilder()
+                .field('assigned_to').is_empty()
+                .AND()
+                .field('assignment_group.name').equals('MS Team 2')
+                .AND()
+                .field('active').equals('true')
+                )
+
+        incident = c.resource(api_path='/table/incident')
+        response = incident.get(query=qb)
+
+        return len(response.all())
+
     @pyqtSlot()
     def run(self):
-        global snow_instance, snow_username, snow_password
-
         self.refresh=False
 
         print("running fetch_incident_count")
 
         while True:
             print("checking incidents...")
-            c = pysnow.client.Client(instance=snow_instance, user=snow_username, password=snow_password)
 
-            qb = (pysnow.QueryBuilder()
-                    .field('assigned_to').is_empty()
-                    .AND()
-                    .field('assignment_group.name').equals('MS Team 2')
-                    .AND()
-                    .field('active').equals('true')
-                    )
-
-            incident = c.resource(api_path='/table/incident')
-            response = incident.get(query=qb)
-
-            incident_count = len(response.all())
+            incident_count=self.getUnattendedIncidentCount()
 
             if incident_count==0:
                 self.MainWindow.tray_icon.setIcon(self.MainWindow.style().standardIcon(QStyle.SP_DialogApplyButton))
