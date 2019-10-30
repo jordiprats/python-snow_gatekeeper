@@ -10,7 +10,6 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QGridLayout, QWid
     QSpacerItem, QSizePolicy, QMenu, QAction, QStyle, qApp
 from PyQt5.QtCore import QSize
 
-from threading import Thread
 
 snow_instance = "nttcom"
 snow_username = ""
