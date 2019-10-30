@@ -1,6 +1,10 @@
 import time
 import pysnow
 
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
+
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QGridLayout, QWidget, QCheckBox, QSystemTrayIcon, \
     QSpacerItem, QSizePolicy, QMenu, QAction, QStyle, qApp
@@ -44,45 +48,56 @@ class Login(QtWidgets.QDialog):
                 self, 'Error', 'Bad user or password: '+str(e))
 
 
+class FetchUnattendedIncidentsWorker(QRunnable):
+
+    def setMainWindow(self, MainWindow):
+        self.MainWindow = MainWindow
+
+    @pyqtSlot()
+    def run(self):
+        global snow_instance, snow_username, snow_password
+
+        print("running %fetch_incident_count%")
+
+        while True:
+            print("checking incidents...")
+            c = pysnow.client.Client(instance=snow_instance, user=snow_username, password=snow_password)
+
+            qb = (pysnow.QueryBuilder()
+                    .field('assigned_to').is_empty()
+                    .AND()
+                    .field('assignment_group.name').equals('MS Team 2')
+                    .AND()
+                    .field('active').equals('true')
+                    )
+
+            incident = c.resource(api_path='/table/incident')
+            response = incident.get(query=qb)
+
+            incident_count = len(response.all())
+
+            if incident_count==0:
+                self.MainWindow.tray_icon.setIcon(self.MainWindow.style().standardIcon(QStyle.SP_DialogApplyButton))
+            else:
+                self.MainWindow.tray_icon.setIcon(self.MainWindow.style().standardIcon(QStyle.SP_MessageBoxCritical))
+                self.MainWindow.tray_icon.showMessage(
+                "Unattended INCIDENTS",
+                "Incident count: "+str(incident_count),
+                QSystemTrayIcon.Critical,
+                msecs=10000
+                )
+            print("Sleeping 60 seconds")
+            time.sleep(60)
+
 class MainWindow(QMainWindow):
     check_box = None
     tray_icon = None
-
-    def run_snow_incident_checks(self):
-        global snow_instance, snow_username, snow_password
-        #while True:
-        c = pysnow.client.Client(instance=snow_instance, user=snow_username, password=snow_password)
-
-        qb = (pysnow.QueryBuilder()
-                .field('assigned_to').is_empty()
-                .AND()
-                .field('assignment_group.name').equals('MS Team 2')
-                .AND()
-                .field('active').equals('true')
-                )
-
-        incident = c.resource(api_path='/table/incident')
-        response = incident.get(query=qb)
-
-        incident_count = len(response.all())
-
-        if incident_count==0:
-            self.tray_icon.setIcon(self.style().standardIcon(QStyle.SP_DialogApplyButton))
-        else:
-            self.tray_icon.setIcon(self.style().standardIcon(QStyle.SP_MessageBoxCritical))
-
-        #FIX THIS:
-        self.tray_icon.showMessage(
-            "Tray Program",
-            "Incident count: "+str(incident_count),
-            QSystemTrayIcon.Information,
-            2000
-        )
 
     # Override the class constructor
     def __init__(self):
         # Be sure to call the super class method
         QMainWindow.__init__(self)
+        self.threadpool = QThreadPool()
 
         self.setMinimumSize(QSize(480, 80))             # Set sizes
         self.setWindowTitle("System Tray Application")  # Set a title
@@ -116,7 +131,11 @@ class MainWindow(QMainWindow):
         self.tray_icon.setContextMenu(tray_menu)
         self.tray_icon.show()
 
-        self.run_snow_incident_checks()
+        # self.run_snow_incident_checks()
+        unattended_incidents_worker = FetchUnattendedIncidentsWorker()
+        unattended_incidents_worker.setMainWindow(self)
+        self.threadpool.start(unattended_incidents_worker)
+
 
     # Override closeEvent, to intercept the window closing event
     # The window will be closed only if there is no check mark in the check box
@@ -133,7 +152,6 @@ class MainWindow(QMainWindow):
 
 
 if __name__ == "__main__":
-    global main_window
     import sys
 
     app = QApplication(sys.argv)
