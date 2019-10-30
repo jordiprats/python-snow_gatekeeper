@@ -133,18 +133,22 @@ class MainWindow(QMainWindow):
         self.unattended_incidents_worker.setMainWindow(self)
 
         self.setMinimumSize(QSize(480, 80))             # Set sizes
-        self.setWindowTitle("System Tray Application")  # Set a title
+        self.setWindowTitle("gatekeeper Desktop")  # Set a title
         central_widget = QWidget(self)                  # Create a central widget
         self.setCentralWidget(central_widget)           # Set the central widget
 
         grid_layout = QGridLayout(self)         # Create a QGridLayout
         central_widget.setLayout(grid_layout)   # Set the layout into the central widget
-        grid_layout.addWidget(QLabel("Application, which can minimize to Tray", self), 0, 0)
+        grid_layout.addWidget(QLabel("gatekeeper Desktop settings", self), 0, 0)
 
-        # Add a checkbox, which will depend on the behavior of the program when the window is closed
-        self.check_box = QCheckBox('Minimize to Tray')
-        self.check_box.setChecked(1)
-        grid_layout.addWidget(self.check_box, 1, 0)
+        self.alert_on_unattended_incidents = QCheckBox('check unattended incidents')
+        self.alert_on_unattended_incidents.setChecked(1)
+        grid_layout.addWidget(self.alert_on_unattended_incidents, 1, 0)
+        grid_layout.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Expanding), 2, 0)
+
+        self.alert_on_assigned_incidents = QCheckBox('check assigned incidents')
+        self.alert_on_assigned_incidents.setChecked(1)
+        grid_layout.addWidget(self.alert_on_assigned_incidents, 2, 0)
         grid_layout.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Expanding), 2, 0)
 
         # Init QSystemTrayIcon
@@ -178,9 +182,8 @@ class MainWindow(QMainWindow):
     # Override closeEvent, to intercept the window closing event
     # The window will be closed only if there is no check mark in the check box
     def closeEvent(self, event):
-        if self.check_box.isChecked():
-            event.ignore()
-            self.hide()
+        event.ignore()
+        self.hide()
 
 if __name__ == "__main__":
     import sys
