@@ -16,9 +16,12 @@ snow_instance = ""
 snow_username = ""
 snow_password = ""
 snow_team = ""
+display_name = ""
 debug = 0
 main_window = None
 
+check_unattended_incidents = True
+check_assigned_incidents = True
 
 class Login(QtWidgets.QDialog):
     def __init__(self, parent=None):
@@ -66,8 +69,17 @@ class Login(QtWidgets.QDialog):
 
         layout.addWidget(self.buttonLogin)
 
+        if self.settings.value("check_unattended_incidents") == '1':
+            check_unattended_incidents=True
+        else:
+            check_unattended_incidents=False
+        if self.settings.value("check_assigned_incidents") == '1':
+            check_assigned_incidents=True
+        else:
+            check_assigned_incidents=False
+
     def handleLogin(self):
-        global snow_instance, snow_username, snow_password, snow_team, debug
+        global snow_instance, snow_username, snow_password, snow_team, debug, display_name
         snow_instance = self.textInstance.text()
         snow_username = self.textName.text()
         snow_password = self.textPass.text()
@@ -79,6 +91,7 @@ class Login(QtWidgets.QDialog):
                 .resource(api_path='/table/sys_user')
                 .get(query={'user_name': snow_username})
                 .one())
+            display_name = response['name']
             self.accept()
         except Exception as e:
             QtWidgets.QMessageBox.warning(
@@ -89,10 +102,10 @@ class Login(QtWidgets.QDialog):
         self.settings.setValue("snow_password", snow_password)
         self.settings.setValue("snow_team", snow_team)
         if self.debug_checkbox.isChecked():
-            self.settings.setValue("debug", 1)
+            self.settings.setValue("debug", '1')
             debug=True
         else:
-            self.settings.setValue("debug", 0)
+            self.settings.setValue("debug", '0')
             debug=False
         self.settings.sync()
 
@@ -106,8 +119,31 @@ class snowWorker(QRunnable):
     def setRefresh(self, refresh):
         self.refresh=refresh
 
+    def getAssignedIncidentCount(self):
+        global snow_instance, snow_username, snow_password, snow_team, debug, display_name
+        print("    def getAssignedIncidentCount(self):")
+        c = pysnow.client.Client(instance=snow_instance, user=snow_username, password=snow_password)
+
+        qb = (pysnow.QueryBuilder()
+                .field('assigned_to').equals(display_name)
+                .AND()
+                .field('active').equals('true')
+                .AND()
+                .field('state').not_equals('6') # not resolved
+                )
+
+        incident = c.resource(api_path='/table/incident')
+        response = incident.get(query=qb)
+
+        if debug:
+            for record in response.all():
+                print(record['number'])
+
+        return len(response.all())
+
     def getUnattendedIncidentCount(self):
         global snow_instance, snow_username, snow_password, snow_team, debug
+        print("    def getUnattendedIncidentCount(self):")
         c = pysnow.client.Client(instance=snow_instance, user=snow_username, password=snow_password)
 
         qb = (pysnow.QueryBuilder()
@@ -117,7 +153,7 @@ class snowWorker(QRunnable):
                 .AND()
                 .field('active').equals('true')
                 .AND()
-                .field('state').not_equals('6') # not ressolved
+                .field('state').not_equals('6') # not resolved
                 )
 
         incident = c.resource(api_path='/table/incident')
@@ -134,24 +170,58 @@ class snowWorker(QRunnable):
         global debug
         self.refresh=False
 
+        settings = QtCore.QSettings()
+
         if debug:
             print("running fetch_incident_count")
 
         while True:
+            settings.sync()
             if debug:
                 print("checking incidents...")
 
-            incident_count=self.getUnattendedIncidentCount()
+            if debug:
+                print("settings::check_unattended_incidents: "+settings.value("check_unattended_incidents"))
+            if settings.value("check_unattended_incidents") == '1':
+                check_unattended_incidents=True
+            else:
+                check_unattended_incidents=False
 
-            if incident_count==0:
-                self.MainWindow.tray_icon.setIcon(self.MainWindow.style().standardIcon(QStyle.SP_DialogApplyButton))
+            if debug:
+                print("settings::check_assigned_incidents: "+settings.value("check_assigned_incidents"))
+            if settings.value("check_assigned_incidents") == '1':
+                check_assigned_incidents=True
+            else:
+                check_assigned_incidents=False
+
+            if check_unattended_incidents:
+                unattended_incident_count=self.getUnattendedIncidentCount()
+            else:
+                unattended_incident_count=0
+
+            if check_assigned_incidents:
+                user_assigned_incident_count=self.getAssignedIncidentCount()
+            else:
+                user_assigned_incident_count=0
+
+            if unattended_incident_count==0:
+                if user_assigned_incident_count==0:
+                    self.MainWindow.tray_icon.setIcon(self.MainWindow.style().standardIcon(QStyle.SP_DialogApplyButton))
+                else:
+                    self.MainWindow.tray_icon.setIcon(self.MainWindow.style().standardIcon(QStyle.SP_MessageBoxWarning))
+                    self.MainWindow.tray_icon.showMessage(
+                        "ASSIGNED INCIDENTS",
+                        "Assigned incident count: "+str(user_assigned_incident_count),
+                        QSystemTrayIcon.Warning,
+                        msecs=10000
+                    )
             else:
                 self.MainWindow.tray_icon.setIcon(self.MainWindow.style().standardIcon(QStyle.SP_MessageBoxCritical))
                 self.MainWindow.tray_icon.showMessage(
-                "Unattended INCIDENTS",
-                "Incident count: "+str(incident_count),
-                QSystemTrayIcon.Critical,
-                msecs=10000
+                    "Unattended INCIDENTS",
+                    "Incident count: "+str(unattended_incident_count),
+                    QSystemTrayIcon.Critical,
+                    msecs=10000
                 )
             self.MainWindow.tray_icon.show()
             if debug:
@@ -172,7 +242,9 @@ class MainWindow(QMainWindow):
 
     # Override the class constructor
     def __init__(self):
+        global check_unattended_incidents, check_assigned_incidents
         # Be sure to call the super class method
+        self.settings = QtCore.QSettings()
         QMainWindow.__init__(self)
         self.threadpool = QThreadPool()
         self.snow_worker = snowWorker()
@@ -188,12 +260,18 @@ class MainWindow(QMainWindow):
         grid_layout.addWidget(QLabel("gatekeeper Desktop settings", self), 0, 0)
 
         self.alert_on_unattended_incidents = QCheckBox('check unattended incidents')
-        self.alert_on_unattended_incidents.setChecked(1)
+        if check_unattended_incidents:
+            self.alert_on_unattended_incidents.setChecked(1)
+        else:
+            self.alert_on_unattended_incidents.setChecked(0)
         grid_layout.addWidget(self.alert_on_unattended_incidents, 1, 0)
         grid_layout.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Expanding), 2, 0)
 
         self.alert_on_assigned_incidents = QCheckBox('check assigned incidents')
-        self.alert_on_assigned_incidents.setChecked(1)
+        if check_assigned_incidents:
+            self.alert_on_assigned_incidents.setChecked(1)
+        else:
+            self.alert_on_assigned_incidents.setChecked(0)
         grid_layout.addWidget(self.alert_on_assigned_incidents, 2, 0)
         grid_layout.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Expanding), 2, 0)
 
@@ -203,19 +281,16 @@ class MainWindow(QMainWindow):
 
         refresh_action = QAction("Refresh", self)
         show_action = QAction("Show", self)
-        hide_action = QAction("Hide", self)
         quit_action = QAction("Exit", self)
 
         refresh_action.triggered.connect(self.refresh_unattended_incidents)
         show_action.triggered.connect(self.show)
-        hide_action.triggered.connect(self.hide)
         quit_action.triggered.connect(qApp.quit)
 
         tray_menu = QMenu(parent=None)
         tray_menu.aboutToShow.connect(self.refresh_unattended_incidents)
         tray_menu.addAction(refresh_action)
         tray_menu.addAction(show_action)
-        tray_menu.addAction(hide_action)
         tray_menu.addAction(quit_action)
 
         self.tray_icon.setContextMenu(tray_menu)
@@ -228,6 +303,18 @@ class MainWindow(QMainWindow):
     # Override closeEvent, to intercept the window closing event
     # The window will be closed only if there is no check mark in the check box
     def closeEvent(self, event):
+
+        if self.alert_on_unattended_incidents.isChecked():
+            self.settings.setValue("check_unattended_incidents", '1')
+        else:
+            self.settings.setValue("check_unattended_incidents", '0')
+
+        if self.alert_on_assigned_incidents.isChecked():
+            self.settings.setValue("check_assigned_incidents", '1')
+        else:
+            self.settings.setValue("check_assigned_incidents", '0')
+
+        self.settings.sync()
         event.ignore()
         self.hide()
 
