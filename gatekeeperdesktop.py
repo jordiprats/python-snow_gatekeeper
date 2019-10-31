@@ -12,36 +12,58 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QGridLayout, QWid
 from PyQt5.QtCore import QSize
 
 
-snow_instance = "nttcom"
+snow_instance = ""
 snow_username = ""
 snow_password = ""
+debug=0
 main_window = None
 
 
 class Login(QtWidgets.QDialog):
     def __init__(self, parent=None):
+        global snow_instance, snow_username, snow_password, debug
         super(Login, self).__init__(parent)
 
         self.setWindowTitle("Login")
+        self.setWindowIcon(self.style().standardIcon(QStyle.SP_ComputerIcon))
 
         self.settings = QtCore.QSettings()
 
+        self.textInstance = QtWidgets.QLineEdit(self)
         self.textName = QtWidgets.QLineEdit(self)
         self.textPass = QtWidgets.QLineEdit(self)
         self.textPass.setEchoMode(QtWidgets.QLineEdit.Password)
 
+        self.textInstance.setText(self.settings.value("snow_instance"))
         self.textName.setText(self.settings.value("snow_username"))
         self.textPass.setText(self.settings.value("snow_password"))
+
+        self.debug_checkbox = QCheckBox('debug')
+        if self.settings.value("debug") == '1':
+            self.debug_checkbox.setChecked(1)
+            debug=True
+        else:
+            self.debug_checkbox.setChecked(0)
+            debug=False
 
         self.buttonLogin = QtWidgets.QPushButton('Login', self)
         self.buttonLogin.clicked.connect(self.handleLogin)
         layout = QtWidgets.QVBoxLayout(self)
+
+        layout.addWidget(QLabel("instance:", self))
+        layout.addWidget(self.textInstance)
+        layout.addWidget(QLabel("username:", self))
         layout.addWidget(self.textName)
+        layout.addWidget(QLabel("password:", self))
         layout.addWidget(self.textPass)
+        layout.addWidget(QLabel("debug:", self))
+        layout.addWidget(self.debug_checkbox)
+
         layout.addWidget(self.buttonLogin)
 
     def handleLogin(self):
-        global snow_instance, snow_username, snow_password
+        global snow_instance, snow_username, snow_password, debug
+        snow_instance = self.textInstance.text()
         snow_username = self.textName.text()
         snow_password = self.textPass.text()
 
@@ -56,12 +78,19 @@ class Login(QtWidgets.QDialog):
             QtWidgets.QMessageBox.warning(
                 self, 'Error', 'Bad user or password: '+str(e))
 
+        self.settings.setValue("snow_instance", snow_instance)
         self.settings.setValue("snow_username", snow_username)
         self.settings.setValue("snow_password", snow_password)
+        if self.debug_checkbox.isChecked():
+            self.settings.setValue("debug", 1)
+            debug=True
+        else:
+            self.settings.setValue("debug", 0)
+            debug=False
         self.settings.sync()
 
 
-class FetchUnattendedIncidentsWorker(QRunnable):
+class snowWorker(QRunnable):
 
     def setMainWindow(self, MainWindow):
         self.MainWindow = MainWindow
@@ -89,12 +118,15 @@ class FetchUnattendedIncidentsWorker(QRunnable):
 
     @pyqtSlot()
     def run(self):
+        global debug
         self.refresh=False
 
-        print("running fetch_incident_count")
+        if debug:
+            print("running fetch_incident_count")
 
         while True:
-            print("checking incidents...")
+            if debug:
+                print("checking incidents...")
 
             incident_count=self.getUnattendedIncidentCount()
 
@@ -109,7 +141,8 @@ class FetchUnattendedIncidentsWorker(QRunnable):
                 msecs=10000
                 )
             self.MainWindow.tray_icon.show()
-            print("Sleeping 60 seconds")
+            if debug:
+                print("Sleeping 60 seconds")
             for i in range(60):
                 if self.refresh:
                     self.refresh=False
@@ -122,15 +155,15 @@ class MainWindow(QMainWindow):
     tray_icon = None
 
     def refresh_unattended_incidents(self):
-        self.unattended_incidents_worker.setRefresh(True)
+        self.snow_worker.setRefresh(True)
 
     # Override the class constructor
     def __init__(self):
         # Be sure to call the super class method
         QMainWindow.__init__(self)
         self.threadpool = QThreadPool()
-        self.unattended_incidents_worker = FetchUnattendedIncidentsWorker()
-        self.unattended_incidents_worker.setMainWindow(self)
+        self.snow_worker = snowWorker()
+        self.snow_worker.setMainWindow(self)
 
         self.setMinimumSize(QSize(480, 80))             # Set sizes
         self.setWindowTitle("gatekeeper Desktop")  # Set a title
@@ -176,7 +209,7 @@ class MainWindow(QMainWindow):
         self.tray_icon.show()
 
         # run bg job
-        self.threadpool.start(self.unattended_incidents_worker)
+        self.threadpool.start(self.snow_worker)
 
 
     # Override closeEvent, to intercept the window closing event
