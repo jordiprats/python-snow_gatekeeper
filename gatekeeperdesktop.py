@@ -15,7 +15,8 @@ from PyQt5.QtCore import QSize
 snow_instance = ""
 snow_username = ""
 snow_password = ""
-debug=0
+snow_team = ""
+debug = 0
 main_window = None
 
 
@@ -33,10 +34,12 @@ class Login(QtWidgets.QDialog):
         self.textName = QtWidgets.QLineEdit(self)
         self.textPass = QtWidgets.QLineEdit(self)
         self.textPass.setEchoMode(QtWidgets.QLineEdit.Password)
+        self.textTeam = QtWidgets.QLineEdit(self)
 
         self.textInstance.setText(self.settings.value("snow_instance"))
         self.textName.setText(self.settings.value("snow_username"))
         self.textPass.setText(self.settings.value("snow_password"))
+        self.textTeam.setText(self.settings.value("snow_team"))
 
         self.debug_checkbox = QCheckBox('debug')
         if self.settings.value("debug") == '1':
@@ -56,16 +59,19 @@ class Login(QtWidgets.QDialog):
         layout.addWidget(self.textName)
         layout.addWidget(QLabel("password:", self))
         layout.addWidget(self.textPass)
+        layout.addWidget(QLabel("team:", self))
+        layout.addWidget(self.textTeam)
         layout.addWidget(QLabel("debug:", self))
         layout.addWidget(self.debug_checkbox)
 
         layout.addWidget(self.buttonLogin)
 
     def handleLogin(self):
-        global snow_instance, snow_username, snow_password, debug
+        global snow_instance, snow_username, snow_password, snow_team, debug
         snow_instance = self.textInstance.text()
         snow_username = self.textName.text()
         snow_password = self.textPass.text()
+        snow_team = self.textTeam.text()
 
         try:
             client = pysnow.Client(instance=snow_instance, user=snow_username, password=snow_password)
@@ -81,6 +87,7 @@ class Login(QtWidgets.QDialog):
         self.settings.setValue("snow_instance", snow_instance)
         self.settings.setValue("snow_username", snow_username)
         self.settings.setValue("snow_password", snow_password)
+        self.settings.setValue("snow_team", snow_team)
         if self.debug_checkbox.isChecked():
             self.settings.setValue("debug", 1)
             debug=True
@@ -100,15 +107,17 @@ class snowWorker(QRunnable):
         self.refresh=refresh
 
     def getUnattendedIncidentCount(self):
-        global snow_instance, snow_username, snow_password, debug
+        global snow_instance, snow_username, snow_password, snow_team, debug
         c = pysnow.client.Client(instance=snow_instance, user=snow_username, password=snow_password)
 
         qb = (pysnow.QueryBuilder()
                 .field('assigned_to').is_empty()
                 .AND()
-                .field('assignment_group.name').equals('MS Team 2')
+                .field('assignment_group.name').equals(snow_team)
                 .AND()
                 .field('active').equals('true')
+                .AND()
+                .field('state').not_equals('6') # not ressolved
                 )
 
         incident = c.resource(api_path='/table/incident')
