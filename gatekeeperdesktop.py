@@ -100,7 +100,7 @@ class snowWorker(QRunnable):
         self.refresh=refresh
 
     def getUnattendedIncidentCount(self):
-        global snow_instance, snow_username, snow_password
+        global snow_instance, snow_username, snow_password, debug
         c = pysnow.client.Client(instance=snow_instance, user=snow_username, password=snow_password)
 
         qb = (pysnow.QueryBuilder()
@@ -113,6 +113,10 @@ class snowWorker(QRunnable):
 
         incident = c.resource(api_path='/table/incident')
         response = incident.get(query=qb)
+
+        if debug:
+            for record in response.all():
+                print(record['number'])
 
         return len(response.all())
 
