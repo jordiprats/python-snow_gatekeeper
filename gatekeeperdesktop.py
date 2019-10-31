@@ -25,7 +25,7 @@ check_assigned_incidents = True
 
 class Login(QtWidgets.QDialog):
     def __init__(self, parent=None):
-        global snow_instance, snow_username, snow_password, debug
+        global snow_instance, snow_username, snow_password, debug, check_unattended_incidents, check_assigned_incidents
         super(Login, self).__init__(parent)
 
         self.setWindowTitle("Login")
@@ -139,7 +139,10 @@ class snowWorker(QRunnable):
             for record in response.all():
                 print(record['number'])
 
-        return len(response.all())
+        count=len(response.all())
+        if debug:
+            print("    "+str(count))
+        return count
 
     def getUnattendedIncidentCount(self):
         global snow_instance, snow_username, snow_password, snow_team, debug
@@ -163,7 +166,10 @@ class snowWorker(QRunnable):
             for record in response.all():
                 print(record['number'])
 
-        return len(response.all())
+        count=len(response.all())
+        if debug:
+            print("    "+str(count))
+        return count
 
     @pyqtSlot()
     def run(self):
