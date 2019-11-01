@@ -263,6 +263,7 @@ class MainWindow(QMainWindow):
         # Be sure to call the super class method
         self.settings = QtCore.QSettings()
         QMainWindow.__init__(self)
+        self.setWindowIcon(self.style().standardIcon(QStyle.SP_DialogSaveButton))
         self.threadpool = QThreadPool()
         self.snow_worker = snowWorker()
         self.snow_worker.setMainWindow(self)
