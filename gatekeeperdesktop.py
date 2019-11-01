@@ -287,6 +287,7 @@ class MainWindow(QMainWindow):
         # Init QSystemTrayIcon
         self.tray_icon = QSystemTrayIcon(self)
         self.tray_icon.setIcon(self.style().standardIcon(QStyle.SP_BrowserReload))
+        self.tray_icon.setVisible(True)
 
         refresh_action = QAction("Refresh", self)
         show_action = QAction("Show", self)
