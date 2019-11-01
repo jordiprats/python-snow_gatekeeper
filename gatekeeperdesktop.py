@@ -181,6 +181,8 @@ class snowWorker(QRunnable):
         if debug:
             print("running fetch_incident_count")
 
+        previous_unattended_incident_count=0
+        previous_user_assigned_incident_count=0
         while True:
             try:
                 settings.sync()
@@ -216,20 +218,24 @@ class snowWorker(QRunnable):
                         self.MainWindow.tray_icon.setIcon(self.MainWindow.style().standardIcon(QStyle.SP_DialogApplyButton))
                     else:
                         self.MainWindow.tray_icon.setIcon(self.MainWindow.style().standardIcon(QStyle.SP_MessageBoxWarning))
-                        self.MainWindow.tray_icon.showMessage(
-                            "ASSIGNED INCIDENTS",
-                            "Assigned incident count: "+str(user_assigned_incident_count),
-                            QSystemTrayIcon.Warning,
-                            msecs=10000
-                        )
+                        if previous_user_assigned_incident_count!=user_assigned_incident_count:
+                            previous_user_assigned_incident_count=user_assigned_incident_count
+                            self.MainWindow.tray_icon.showMessage(
+                                "ASSIGNED INCIDENTS",
+                                "Assigned incident count: "+str(user_assigned_incident_count),
+                                QSystemTrayIcon.Warning,
+                                msecs=10000
+                            )
                 else:
                     self.MainWindow.tray_icon.setIcon(self.MainWindow.style().standardIcon(QStyle.SP_MessageBoxCritical))
-                    self.MainWindow.tray_icon.showMessage(
-                        "Unattended INCIDENTS",
-                        "Incident count: "+str(unattended_incident_count),
-                        QSystemTrayIcon.Critical,
-                        msecs=10000
-                    )
+                    if previous_unattended_incident_count!=unattended_incident_count:
+                        previous_unattended_incident_count=unattended_incident_count
+                        self.MainWindow.tray_icon.showMessage(
+                            "Unattended INCIDENTS",
+                            "Incident count: "+str(unattended_incident_count),
+                            QSystemTrayIcon.Critical,
+                            msecs=10000
+                        )
                 self.MainWindow.tray_icon.show()
                 if debug:
                     print("Sleeping 60 seconds")
