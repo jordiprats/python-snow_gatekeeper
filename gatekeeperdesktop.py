@@ -220,6 +220,7 @@ class snowWorker(QRunnable):
                         self.MainWindow.tray_icon.setIcon(self.MainWindow.style().standardIcon(QStyle.SP_MessageBoxWarning))
                         if previous_user_assigned_incident_count!=user_assigned_incident_count:
                             previous_user_assigned_incident_count=user_assigned_incident_count
+                            previous_unattended_incident_count=0
                             self.MainWindow.tray_icon.showMessage(
                                 "ASSIGNED INCIDENTS",
                                 "Assigned incident count: "+str(user_assigned_incident_count),
@@ -230,6 +231,7 @@ class snowWorker(QRunnable):
                     self.MainWindow.tray_icon.setIcon(self.MainWindow.style().standardIcon(QStyle.SP_MessageBoxCritical))
                     if previous_unattended_incident_count!=unattended_incident_count:
                         previous_unattended_incident_count=unattended_incident_count
+                        previous_user_assigned_incident_count=0
                         self.MainWindow.tray_icon.showMessage(
                             "Unattended INCIDENTS",
                             "Incident count: "+str(unattended_incident_count),
