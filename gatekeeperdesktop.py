@@ -125,7 +125,7 @@ class snowWorker(QRunnable):
         c = pysnow.client.Client(instance=snow_instance, user=snow_username, password=snow_password)
 
         qb = (pysnow.QueryBuilder()
-                .field('assigned_to').equals(display_name)
+                .field('assigned_to.name').equals(display_name)
                 .AND()
                 .field('active').equals('true')
                 .AND()

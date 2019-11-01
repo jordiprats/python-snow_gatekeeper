@@ -82,18 +82,9 @@ if __name__ == '__main__':
         sys.exit("ERROR: username is mandatory")
 
     c = pysnow.client.Client(instance=SHH_INSTANCE, user=SHH_USERNAME, password=SHH_PASSWORD)
-    response = (c
-        .resource(api_path='/table/sys_user')
-        .get(query={'user_name': SHH_USERNAME})
-        .one())
-    display_name = response['name']
-
-    print(display_name)
-
-    c = pysnow.client.Client(instance=SHH_INSTANCE, user=SHH_USERNAME, password=SHH_PASSWORD)
 
     qb = (pysnow.QueryBuilder()
-            .field('assigned_to.name').equals(display_name)
+            .field('assignment_group.name').equals('MS Team 2')
             .AND()
             .field('active').equals('true')
             )
@@ -101,7 +92,6 @@ if __name__ == '__main__':
     incident = c.resource(api_path='/table/incident')
     response = incident.get(query=qb)
 
-    print(str(response))
-
+    # Iterate over the matching records and print out number
     for record in response.all():
         print(str(record))
