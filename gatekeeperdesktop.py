@@ -182,62 +182,65 @@ class snowWorker(QRunnable):
             print("running fetch_incident_count")
 
         while True:
-            settings.sync()
-            if debug:
-                print("checking incidents...")
+            try:
+                settings.sync()
+                if debug:
+                    print("checking incidents...")
 
-            if debug:
-                print("settings::check_unattended_incidents: "+settings.value("check_unattended_incidents"))
-            if settings.value("check_unattended_incidents") == '1':
-                check_unattended_incidents=True
-            else:
-                check_unattended_incidents=False
-
-            if debug:
-                print("settings::check_assigned_incidents: "+settings.value("check_assigned_incidents"))
-            if settings.value("check_assigned_incidents") == '1':
-                check_assigned_incidents=True
-            else:
-                check_assigned_incidents=False
-
-            if check_unattended_incidents:
-                unattended_incident_count=self.getUnattendedIncidentCount()
-            else:
-                unattended_incident_count=0
-
-            if check_assigned_incidents:
-                user_assigned_incident_count=self.getAssignedIncidentCount()
-            else:
-                user_assigned_incident_count=0
-
-            if unattended_incident_count==0:
-                if user_assigned_incident_count==0:
-                    self.MainWindow.tray_icon.setIcon(self.MainWindow.style().standardIcon(QStyle.SP_DialogApplyButton))
+                if debug:
+                    print("settings::check_unattended_incidents: "+settings.value("check_unattended_incidents"))
+                if settings.value("check_unattended_incidents") == '1':
+                    check_unattended_incidents=True
                 else:
-                    self.MainWindow.tray_icon.setIcon(self.MainWindow.style().standardIcon(QStyle.SP_MessageBoxWarning))
+                    check_unattended_incidents=False
+
+                if debug:
+                    print("settings::check_assigned_incidents: "+settings.value("check_assigned_incidents"))
+                if settings.value("check_assigned_incidents") == '1':
+                    check_assigned_incidents=True
+                else:
+                    check_assigned_incidents=False
+
+                if check_unattended_incidents:
+                    unattended_incident_count=self.getUnattendedIncidentCount()
+                else:
+                    unattended_incident_count=0
+
+                if check_assigned_incidents:
+                    user_assigned_incident_count=self.getAssignedIncidentCount()
+                else:
+                    user_assigned_incident_count=0
+
+                if unattended_incident_count==0:
+                    if user_assigned_incident_count==0:
+                        self.MainWindow.tray_icon.setIcon(self.MainWindow.style().standardIcon(QStyle.SP_DialogApplyButton))
+                    else:
+                        self.MainWindow.tray_icon.setIcon(self.MainWindow.style().standardIcon(QStyle.SP_MessageBoxWarning))
+                        self.MainWindow.tray_icon.showMessage(
+                            "ASSIGNED INCIDENTS",
+                            "Assigned incident count: "+str(user_assigned_incident_count),
+                            QSystemTrayIcon.Warning,
+                            msecs=10000
+                        )
+                else:
+                    self.MainWindow.tray_icon.setIcon(self.MainWindow.style().standardIcon(QStyle.SP_MessageBoxCritical))
                     self.MainWindow.tray_icon.showMessage(
-                        "ASSIGNED INCIDENTS",
-                        "Assigned incident count: "+str(user_assigned_incident_count),
-                        QSystemTrayIcon.Warning,
+                        "Unattended INCIDENTS",
+                        "Incident count: "+str(unattended_incident_count),
+                        QSystemTrayIcon.Critical,
                         msecs=10000
                     )
-            else:
-                self.MainWindow.tray_icon.setIcon(self.MainWindow.style().standardIcon(QStyle.SP_MessageBoxCritical))
-                self.MainWindow.tray_icon.showMessage(
-                    "Unattended INCIDENTS",
-                    "Incident count: "+str(unattended_incident_count),
-                    QSystemTrayIcon.Critical,
-                    msecs=10000
-                )
-            self.MainWindow.tray_icon.show()
-            if debug:
-                print("Sleeping 60 seconds")
-            for i in range(60):
-                if self.refresh:
-                    self.refresh=False
-                    break
-                else:
-                    time.sleep(1)
+                self.MainWindow.tray_icon.show()
+                if debug:
+                    print("Sleeping 60 seconds")
+                for i in range(60):
+                    if self.refresh:
+                        self.refresh=False
+                        break
+                    else:
+                        time.sleep(1)
+            except Exception as e:
+                print("Exception snowWorker::run: "+str(e))
 
 class MainWindow(QMainWindow):
     check_box = None
