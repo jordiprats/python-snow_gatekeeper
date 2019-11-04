@@ -98,11 +98,8 @@ class Login(QtWidgets.QDialog):
                 import notify2
 
                 notify2.init("gatekeeper Desktop")
-
                 n = notify2.Notification("gatekeeper Desktop", "service-now Login successfull")
-
                 n.set_urgency(notify2.URGENCY_NORMAL)
-
                 n.show()
 
         except Exception as e:
