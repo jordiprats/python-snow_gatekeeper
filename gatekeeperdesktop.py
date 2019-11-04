@@ -18,6 +18,7 @@ snow_password = ""
 snow_team = ""
 display_name = ""
 debug = 0
+window_mode = False
 main_window = None
 
 check_unattended_incidents = True
@@ -25,7 +26,7 @@ check_assigned_incidents = True
 
 class Login(QtWidgets.QDialog):
     def __init__(self, parent=None):
-        global snow_instance, snow_username, snow_password, debug, check_unattended_incidents, check_assigned_incidents
+        global snow_instance, snow_username, snow_password, debug, check_unattended_incidents, check_assigned_incidents, window_mode
         super(Login, self).__init__(parent)
 
         self.setWindowTitle("Login")
@@ -52,6 +53,14 @@ class Login(QtWidgets.QDialog):
             self.debug_checkbox.setChecked(0)
             debug=False
 
+        self.windowmode_checkbox = QCheckBox('window mode')
+        if self.settings.value("window_mode") == '1':
+            self.windowmode_checkbox.setChecked(1)
+            debug=True
+        else:
+            self.windowmode_checkbox.setChecked(0)
+            debug=False
+
         self.buttonLogin = QtWidgets.QPushButton('Login', self)
         self.buttonLogin.clicked.connect(self.handleLogin)
         layout = QtWidgets.QVBoxLayout(self)
@@ -64,8 +73,9 @@ class Login(QtWidgets.QDialog):
         layout.addWidget(self.textPass)
         layout.addWidget(QLabel("team:", self))
         layout.addWidget(self.textTeam)
-        layout.addWidget(QLabel("debug:", self))
+        layout.addWidget(QLabel("options:", self))
         layout.addWidget(self.debug_checkbox)
+        layout.addWidget(self.windowmode_checkbox)
 
         layout.addWidget(self.buttonLogin)
 
@@ -79,7 +89,7 @@ class Login(QtWidgets.QDialog):
             check_assigned_incidents=False
 
     def handleLogin(self):
-        global snow_instance, snow_username, snow_password, snow_team, debug, display_name
+        global snow_instance, snow_username, snow_password, snow_team, debug, display_name, window_mode
         snow_instance = self.textInstance.text()
         snow_username = self.textName.text()
         snow_password = self.textPass.text()
@@ -116,6 +126,12 @@ class Login(QtWidgets.QDialog):
         else:
             self.settings.setValue("debug", '0')
             debug=False
+        if self.windowmode_checkbox.isChecked():
+            self.settings.setValue("window_mode", '1')
+            window_mode=True
+        else:
+            self.settings.setValue("window_mode", '0')
+            window_mode=False
         self.settings.sync()
 
 
