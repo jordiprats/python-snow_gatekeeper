@@ -104,14 +104,6 @@ class Login(QtWidgets.QDialog):
             display_name = response['name']
             self.accept()
 
-            if not QSystemTrayIcon.isSystemTrayAvailable():
-                import notify2
-
-                notify2.init("gatekeeper Desktop")
-                n = notify2.Notification("gatekeeper Desktop", "service-now Login successfull")
-                n.set_urgency(notify2.URGENCY_NORMAL)
-                n.show()
-
         except Exception as e:
             QtWidgets.QMessageBox.warning(
                 self, 'Error', 'Bad user or password: '+str(e))
@@ -246,23 +238,37 @@ class snowWorker(QRunnable):
                         if previous_user_assigned_incident_count!=user_assigned_incident_count:
                             previous_user_assigned_incident_count=user_assigned_incident_count
                             previous_unattended_incident_count=0
-                            self.MainWindow.tray_icon.showMessage(
-                                "ASSIGNED INCIDENTS",
-                                "Assigned incident count: "+str(user_assigned_incident_count),
-                                QSystemTrayIcon.Warning,
-                                msecs=10000
-                            )
+                            if not QSystemTrayIcon.isSystemTrayAvailable():
+                                import notify2
+                                notify2.init("gatekeeper Desktop")
+                                n = notify2.Notification("ASSIGNED INCIDENTS", "Assigned incident count: "+str(user_assigned_incident_count))
+                                n.set_urgency(notify2.URGENCY_NORMAL)
+                                n.show()
+                            else:
+                                self.MainWindow.tray_icon.showMessage(
+                                    "ASSIGNED INCIDENTS",
+                                    "Assigned incident count: "+str(user_assigned_incident_count),
+                                    QSystemTrayIcon.Warning,
+                                    msecs=10000
+                                )
                 else:
                     self.MainWindow.tray_icon.setIcon(self.MainWindow.style().standardIcon(QStyle.SP_MessageBoxCritical))
                     if previous_unattended_incident_count!=unattended_incident_count:
                         previous_unattended_incident_count=unattended_incident_count
                         previous_user_assigned_incident_count=0
-                        self.MainWindow.tray_icon.showMessage(
-                            "Unattended INCIDENTS",
-                            "Incident count: "+str(unattended_incident_count),
-                            QSystemTrayIcon.Critical,
-                            msecs=10000
-                        )
+                        if not QSystemTrayIcon.isSystemTrayAvailable():
+                            import notify2
+                            notify2.init("gatekeeper Desktop")
+                            n = notify2.Notification("Unattended INCIDENTS", "Incident count: "+str(unattended_incident_count))
+                            n.set_urgency(notify2.URGENCY_NORMAL)
+                            n.show()
+                        else:
+                            self.MainWindow.tray_icon.showMessage(
+                                "Unattended INCIDENTS",
+                                "Incident count: "+str(unattended_incident_count),
+                                QSystemTrayIcon.Critical,
+                                msecs=10000
+                            )
                 self.MainWindow.tray_icon.show()
                 if debug:
                     print("Sleeping 60 seconds")
