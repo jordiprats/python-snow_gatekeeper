@@ -125,10 +125,10 @@ class Login(QtWidgets.QDialog):
             self.settings.setValue("window_mode", '0')
             window_mode=False
 
-        if not settings.value("check_unattended_incidents"):
-            self.settings.setValue("check_unattended_incidents", '1')
-        if not settings.value("check_assigned_incidents"):
-            self.settings.setValue("check_assigned_incidents", '1')
+        #if not settings.value("check_unattended_incidents"):
+        self.settings.setValue("check_unattended_incidents", '1')
+        #if not settings.value("check_assigned_incidents"):
+        self.settings.setValue("check_assigned_incidents", '1')
 
         self.settings.sync()
 
