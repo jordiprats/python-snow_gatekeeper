@@ -125,10 +125,10 @@ class Login(QtWidgets.QDialog):
             self.settings.setValue("window_mode", '0')
             window_mode=False
 
-        #if not settings.value("check_unattended_incidents"):
-        self.settings.setValue("check_unattended_incidents", '1')
-        #if not settings.value("check_assigned_incidents"):
-        self.settings.setValue("check_assigned_incidents", '1')
+        if not settings.value("check_unattended_incidents"):
+            self.settings.setValue("check_unattended_incidents", '1')
+        if not settings.value("check_assigned_incidents"):
+            self.settings.setValue("check_assigned_incidents", '1')
 
         self.settings.sync()
 
@@ -214,17 +214,17 @@ class snowWorker(QRunnable):
 
                 if debug:
                     print("settings::check_unattended_incidents: "+str(settings.value("check_unattended_incidents")))
-                if settings.value("check_unattended_incidents") == '1':
-                    check_unattended_incidents=True
-                else:
+                if settings.value("check_unattended_incidents") == '0':
                     check_unattended_incidents=False
+                else:
+                    check_unattended_incidents=True
 
                 if debug:
                     print("settings::check_assigned_incidents: "+str(settings.value("check_assigned_incidents")))
-                if settings.value("check_assigned_incidents") == '1':
-                    check_assigned_incidents=True
-                else:
+                if settings.value("check_assigned_incidents") == '0':
                     check_assigned_incidents=False
+                else:
+                    check_assigned_incidents=True
 
                 if check_unattended_incidents:
                     unattended_incident_count=self.getUnattendedIncidentCount()
