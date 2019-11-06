@@ -144,7 +144,8 @@ class snowWorker(QRunnable):
 
     def getAssignedIncidentCount(self):
         global snow_instance, snow_username, snow_password, snow_team, debug, display_name
-        print("    def getAssignedIncidentCount(self):")
+        if debug:
+            print("    def getAssignedIncidentCount(self):")
         c = pysnow.client.Client(instance=snow_instance, user=snow_username, password=snow_password)
 
         qb = (pysnow.QueryBuilder()
@@ -169,7 +170,8 @@ class snowWorker(QRunnable):
 
     def getUnattendedIncidentCount(self):
         global snow_instance, snow_username, snow_password, snow_team, debug
-        print("    def getUnattendedIncidentCount(self):")
+        if debug:
+            print("    def getUnattendedIncidentCount(self):")
         c = pysnow.client.Client(instance=snow_instance, user=snow_username, password=snow_password)
 
         qb = (pysnow.QueryBuilder()
