@@ -240,6 +240,13 @@ class snowWorker(QRunnable):
                 else:
                     user_assigned_incident_count=0
 
+                try:
+                    refresh_interval = int(settings.value("refresh_interval"))
+                except Exception as e:
+                    if debug:
+                        print("snowWorker::run - refresh_internal: "+str(e))
+                    refresh_interval = 60
+
                 if unattended_incident_count==0:
                     if user_assigned_incident_count==0:
                         self.MainWindow.tray_icon.setIcon(self.MainWindow.style().standardIcon(QStyle.SP_DialogApplyButton))
@@ -291,9 +298,11 @@ class snowWorker(QRunnable):
                             )
                 self.MainWindow.tray_icon.show()
                 if debug:
-                    print("Sleeping 60 seconds")
-                for i in range(60):
+                    print("Sleeping "+str(refresh_interval)+" seconds")
+                for i in range(refresh_interval):
                     if self.refresh:
+                        if debug:
+                            print("aborting sleep at "+str(i)+" seconds")
                         self.refresh=False
                         break
                     else:
@@ -310,9 +319,30 @@ class MainWindow(QMainWindow):
 
     # Override the class constructor
     def __init__(self):
-        global check_unattended_incidents, check_assigned_incidents
-        # Be sure to call the super class method
+        global debug
+
         self.settings = QtCore.QSettings()
+
+        if debug:
+            print("settings::check_unattended_incidents: "+str(self.settings.value("check_unattended_incidents")))
+        if self.settings.value("check_unattended_incidents") == '0':
+            check_unattended_incidents=False
+        else:
+            check_unattended_incidents=True
+
+        if debug:
+            print("settings::check_assigned_incidents: "+str(self.settings.value("check_assigned_incidents")))
+        if self.settings.value("check_assigned_incidents") == '0':
+            check_assigned_incidents=False
+        else:
+            check_assigned_incidents=True
+
+        try:
+            refresh_interval_str = str(int(self.settings.value("refresh_interval")))
+        except:
+            refresh_interval_str = '60'
+
+        # Be sure to call the super class method
         QMainWindow.__init__(self)
         self.setWindowIcon(self.style().standardIcon(QStyle.SP_DialogSaveButton))
         self.threadpool = QThreadPool()
@@ -324,25 +354,32 @@ class MainWindow(QMainWindow):
         central_widget = QWidget(self)                  # Create a central widget
         self.setCentralWidget(central_widget)           # Set the central widget
 
-        grid_layout = QGridLayout(self)         # Create a QGridLayout
-        central_widget.setLayout(grid_layout)   # Set the layout into the central widget
-        grid_layout.addWidget(QLabel("gatekeeper Desktop settings", self), 0, 0)
+        layout = QtWidgets.QVBoxLayout(self)
+        central_widget.setLayout(layout)   # Set the layout into the central widget
+
+        window_title = QLabel("gatekeeper Desktop settings", self)
+        window_title.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        window_title.setAlignment(Qt.AlignCenter)
+        layout.addWidget(window_title)
+
+        self.check_interval = QtWidgets.QLineEdit(self)
+        self.check_interval.setText(refresh_interval_str)
+        layout.addWidget(QLabel("refresh interval:", self))
+        layout.addWidget(self.check_interval)
 
         self.alert_on_unattended_incidents = QCheckBox('check unattended incidents')
         if check_unattended_incidents:
             self.alert_on_unattended_incidents.setChecked(1)
         else:
             self.alert_on_unattended_incidents.setChecked(0)
-        grid_layout.addWidget(self.alert_on_unattended_incidents, 1, 0)
-        grid_layout.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Expanding), 2, 0)
+        layout.addWidget(self.alert_on_unattended_incidents)
 
         self.alert_on_assigned_incidents = QCheckBox('check assigned incidents')
         if check_assigned_incidents:
             self.alert_on_assigned_incidents.setChecked(1)
         else:
             self.alert_on_assigned_incidents.setChecked(0)
-        grid_layout.addWidget(self.alert_on_assigned_incidents, 2, 0)
-        grid_layout.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Expanding), 2, 0)
+        layout.addWidget(self.alert_on_assigned_incidents)
 
         # Init QSystemTrayIcon
         self.tray_icon = QSystemTrayIcon(self)
@@ -384,9 +421,15 @@ class MainWindow(QMainWindow):
         else:
             self.settings.setValue("check_assigned_incidents", '0')
 
+        try:
+            self.settings.setValue("refresh_interval", str(int(self.check_interval.text())))
+        except:
+            self.settings.setValue("refresh_interval", '60')
+
         self.settings.sync()
         event.ignore()
         self.hide()
+        self.refresh_unattended_incidents()
 
 if __name__ == "__main__":
     import sys
