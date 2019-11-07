@@ -88,9 +88,6 @@ class Login(QtWidgets.QDialog):
         else:
             check_assigned_incidents=False
 
-        if debug:
-            print("OS: "+os.name)
-
     def handleLogin(self):
         global snow_instance, snow_username, snow_password, snow_team, debug, display_name, window_mode
         snow_instance = self.textInstance.text()
@@ -383,11 +380,6 @@ class MainWindow(QMainWindow):
 
 if __name__ == "__main__":
     import sys
-
-    if os.name == 'nt':
-        import ctypes
-        myappid = u'saltait.snow.gatekeeper.1234'
-        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 
     app = QApplication(sys.argv)
     login = Login()
