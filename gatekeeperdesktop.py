@@ -88,6 +88,9 @@ class Login(QtWidgets.QDialog):
         else:
             check_assigned_incidents=False
 
+        if debug:
+            print("OS: "+os.name)
+
     def handleLogin(self):
         global snow_instance, snow_username, snow_password, snow_team, debug, display_name, window_mode
         snow_instance = self.textInstance.text()
