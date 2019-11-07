@@ -246,17 +246,22 @@ class snowWorker(QRunnable):
                     else:
                         self.MainWindow.tray_icon.setIcon(self.MainWindow.style().standardIcon(QStyle.SP_MessageBoxWarning))
                         if previous_user_assigned_incident_count!=user_assigned_incident_count:
+                            differencia_user_assigned_incident_count=user_assigned_incident_count-previous_user_assigned_incident_count
+                            if differencia_user_assigned_incident_count>0:
+                                differencia_user_assigned_incident_count_str='+'+str(differencia_user_assigned_incident_count)
+                            else:
+                                differencia_user_assigned_incident_count_str=str(differencia_user_assigned_incident_count)
                             previous_user_assigned_incident_count=user_assigned_incident_count
                             previous_unattended_incident_count=0
                             if not QSystemTrayIcon.isSystemTrayAvailable():
                                 import notify2
                                 notify2.init("gatekeeper Desktop")
-                                n = notify2.Notification("ASSIGNED INCIDENTS", "Assigned incident count: "+str(user_assigned_incident_count))
+                                n = notify2.Notification("ASSIGNED INCIDENTS ("+differencia_user_assigned_incident_count_str+")", "Assigned incident count: "+str(user_assigned_incident_count))
                                 n.set_urgency(notify2.URGENCY_NORMAL)
                                 n.show()
                             else:
                                 self.MainWindow.tray_icon.showMessage(
-                                    "ASSIGNED INCIDENTS",
+                                    "ASSIGNED INCIDENTS ("+differencia_user_assigned_incident_count_str+")",
                                     "Assigned incident count: "+str(user_assigned_incident_count),
                                     QSystemTrayIcon.Warning,
                                     msecs=10000
@@ -264,17 +269,22 @@ class snowWorker(QRunnable):
                 else:
                     self.MainWindow.tray_icon.setIcon(self.MainWindow.style().standardIcon(QStyle.SP_MessageBoxCritical))
                     if previous_unattended_incident_count!=unattended_incident_count:
+                        diferencia_unattended_incident_count=unattended_incident_count-previous_unattended_incident_count
+                        if diferencia_unattended_incident_count>0:
+                            diferencia_unattended_incident_count_str='+'+str(diferencia_unattended_incident_count)
+                        else:
+                            diferencia_unattended_incident_count_str=str(diferencia_unattended_incident_count)
                         previous_unattended_incident_count=unattended_incident_count
                         previous_user_assigned_incident_count=0
                         if not QSystemTrayIcon.isSystemTrayAvailable():
                             import notify2
                             notify2.init("gatekeeper Desktop")
-                            n = notify2.Notification("Unattended INCIDENTS", "Incident count: "+str(unattended_incident_count))
+                            n = notify2.Notification("Unattended INCIDENTS ("+diferencia_unattended_incident_count_str+")", "Incident count: "+str(unattended_incident_count))
                             n.set_urgency(notify2.URGENCY_NORMAL)
                             n.show()
                         else:
                             self.MainWindow.tray_icon.showMessage(
-                                "Unattended INCIDENTS",
+                                "Unattended INCIDENTS ("+diferencia_unattended_incident_count_str+")",
                                 "Incident count: "+str(unattended_incident_count),
                                 QSystemTrayIcon.Critical,
                                 msecs=10000
