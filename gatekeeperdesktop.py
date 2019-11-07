@@ -185,6 +185,8 @@ class snowWorker(QRunnable):
                 .field('active').equals('true')
                 .AND()
                 .field('state').not_equals('6') # not resolved
+                .AND()
+                .field('state').not_equals('14') # on hold
                 )
 
         incident = c.resource(api_path='/table/incident')
