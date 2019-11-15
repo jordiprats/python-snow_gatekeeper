@@ -7,10 +7,11 @@ from PyQt5.QtCore import *
 from PyQt5 import QtCore
 
 from PyQt5 import QtWidgets
+from PyQt5.QtCore import QSize
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QGridLayout, QWidget, QCheckBox, QSystemTrayIcon, \
     QSpacerItem, QSizePolicy, QMenu, QAction, QStyle, qApp
-from PyQt5.QtCore import QSize
 
+from datetime import datetime, timedelta
 
 snow_instance = ""
 snow_username = ""
@@ -168,23 +169,43 @@ class snowWorker(QRunnable):
             print("    "+str(count))
         return count
 
-    def getUnattendedIncidentCount(self):
+    def getUnattendedIncidentCount(self, minutes=0):
         global snow_instance, snow_username, snow_password, snow_team, debug
         if debug:
             print("    def getUnattendedIncidentCount(self):")
         c = pysnow.client.Client(instance=snow_instance, user=snow_username, password=snow_password)
 
-        qb = (pysnow.QueryBuilder()
-                .field('assigned_to').is_empty()
-                .AND()
-                .field('assignment_group.name').equals(snow_team)
-                .AND()
-                .field('active').equals('true')
-                .AND()
-                .field('state').not_equals('6') # not resolved
-                .AND()
-                .field('state').not_equals('14') # on hold
-                )
+        if minutes>0:
+            minutes_ago = datetime.now() - timedelta(minutes=minutes)
+            if debug:
+                print("adding "+str(minutes)+" minutes filter on getUnattendedIncidentCount ("+str(minutes_ago)+")")
+            qb = (pysnow.QueryBuilder()
+                    .field('assigned_to').is_empty()
+                    .AND()
+                    .field('assignment_group.name').equals(snow_team)
+                    .AND()
+                    .field('active').equals('true')
+                    .AND()
+                    .field('state').not_equals('6') # not resolved
+                    .AND()
+                    .field('state').not_equals('14') # on hold
+                    .AND()
+                    .field('updated').less_than(minutes_ago)
+                    )
+        else:
+            if debug:
+                print("running getUnattendedIncidentCount without last updated filter")
+            qb = (pysnow.QueryBuilder()
+                    .field('assigned_to').is_empty()
+                    .AND()
+                    .field('assignment_group.name').equals(snow_team)
+                    .AND()
+                    .field('active').equals('true')
+                    .AND()
+                    .field('state').not_equals('6') # not resolved
+                    .AND()
+                    .field('state').not_equals('14') # on hold
+                    )
 
         incident = c.resource(api_path='/table/incident')
         response = incident.get(query=qb)
@@ -230,8 +251,27 @@ class snowWorker(QRunnable):
                 else:
                     check_assigned_incidents=True
 
+                try:
+                    refresh_interval = int(settings.value("refresh_interval"))
+                except Exception as e:
+                    if debug:
+                        print("snowWorker::run - refresh_internal: "+str(e))
+                    refresh_interval = 60
+
+                try:
+                    unattended_incidents_minutes = int(settings.value("unattended_incidents_minutes"))
+                except Exception as e:
+                    if debug:
+                        print("snowWorker::run - unattended_incidents_minutes: "+str(e))
+                    unattended_incidents_minutes = 0
+
+
+                #
+                # get data
+                #
+
                 if check_unattended_incidents:
-                    unattended_incident_count=self.getUnattendedIncidentCount()
+                    unattended_incident_count=self.getUnattendedIncidentCount(minutes=unattended_incidents_minutes)
                 else:
                     unattended_incident_count=0
 
@@ -240,12 +280,9 @@ class snowWorker(QRunnable):
                 else:
                     user_assigned_incident_count=0
 
-                try:
-                    refresh_interval = int(settings.value("refresh_interval"))
-                except Exception as e:
-                    if debug:
-                        print("snowWorker::run - refresh_internal: "+str(e))
-                    refresh_interval = 60
+                #
+                # analyze data
+                #
 
                 if unattended_incident_count==0:
                     if user_assigned_incident_count==0:
@@ -342,6 +379,11 @@ class MainWindow(QMainWindow):
         except:
             refresh_interval_str = '60'
 
+        try:
+            unattended_incidents_minutes_str = str(int(self.settings.value("unattended_incidents_minutes")))
+        except:
+            unattended_incidents_minutes_str = '0'
+
         # Be sure to call the super class method
         QMainWindow.__init__(self)
         self.setWindowIcon(self.style().standardIcon(QStyle.SP_DialogSaveButton))
@@ -373,6 +415,11 @@ class MainWindow(QMainWindow):
         else:
             self.alert_on_unattended_incidents.setChecked(0)
         layout.addWidget(self.alert_on_unattended_incidents)
+
+        self.tb_unattended_incidents_minutes = QtWidgets.QLineEdit(self)
+        self.tb_unattended_incidents_minutes.setText(unattended_incidents_minutes_str)
+        layout.addWidget(QLabel("minutes ago:", self))
+        layout.addWidget(self.tb_unattended_incidents_minutes)
 
         self.alert_on_assigned_incidents = QCheckBox('check assigned incidents')
         if check_assigned_incidents:
@@ -425,6 +472,11 @@ class MainWindow(QMainWindow):
             self.settings.setValue("refresh_interval", str(int(self.check_interval.text())))
         except:
             self.settings.setValue("refresh_interval", '60')
+
+        try:
+            self.settings.setValue("unattended_incidents_minutes", str(int(self.tb_unattended_incidents_minutes.text())))
+        except:
+            self.settings.setValue("unattended_incidents_minutes", '0')
 
         self.settings.sync()
         event.ignore()
