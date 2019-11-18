@@ -11,3 +11,7 @@ gatekeeping Desktop tool for service-snow
 * Install extension "Topicons"
 * Start Tweaks
 * Enable "Topicons" under Extensions
+
+## TODO
+
+* gestió d'aways
