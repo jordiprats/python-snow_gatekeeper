@@ -434,17 +434,17 @@ class MainWindow(QMainWindow):
         self.tray_icon.setVisible(True)
 
         refresh_action = QAction("Refresh", self)
-        show_action = QAction("Show", self)
+        settings_action = QAction("Settings", self)
         quit_action = QAction("Exit", self)
 
         refresh_action.triggered.connect(self.refresh_unattended_incidents)
-        show_action.triggered.connect(self.show)
+        settings_action.triggered.connect(self.show)
         quit_action.triggered.connect(qApp.quit)
 
         tray_menu = QMenu(parent=None)
         tray_menu.aboutToShow.connect(self.refresh_unattended_incidents)
         tray_menu.addAction(refresh_action)
-        tray_menu.addAction(show_action)
+        tray_menu.addAction(settings_action)
         tray_menu.addAction(quit_action)
 
         self.tray_icon.setContextMenu(tray_menu)

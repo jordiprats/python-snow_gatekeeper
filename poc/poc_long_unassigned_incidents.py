@@ -93,7 +93,7 @@ if __name__ == '__main__':
             .AND()
             .field('active').equals('true')
             .AND()
-            .field('updated').greater_than(minutes_ago)
+            .field('updated').between(minutes_ago, datetime.now())
             )
 
     incident = c.resource(api_path='/table/incident')
