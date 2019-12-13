@@ -76,7 +76,7 @@ class Login(QtWidgets.QDialog):
         layout.addWidget(self.textTeam)
         layout.addWidget(QLabel("options:", self))
         layout.addWidget(self.debug_checkbox)
-        layout.addWidget(self.windowmode_checkbox)
+        # layout.addWidget(self.windowmode_checkbox)
 
         layout.addWidget(self.buttonLogin)
 
