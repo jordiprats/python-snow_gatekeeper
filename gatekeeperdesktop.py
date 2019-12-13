@@ -174,38 +174,26 @@ class snowWorker(QRunnable):
         if debug:
             print("    def getUnattendedIncidentCount(self):")
         c = pysnow.client.Client(instance=snow_instance, user=snow_username, password=snow_password)
-
+        qb = (pysnow.QueryBuilder()
+                .field('assigned_to').is_empty()
+                .AND()
+                .field('assignment_group.name').equals(snow_team)
+                .AND()
+                .field('active').equals('true')
+                .AND()
+                .field('state').not_equals('6') # not resolved
+                .AND()
+                .field('state').not_equals('14') # on hold
+                )
         if minutes>0:
             minutes_ago = datetime.now() - timedelta(minutes=minutes)
             if debug:
                 print("adding "+str(minutes)+" minutes filter on getUnattendedIncidentCount ("+str(minutes_ago)+")")
-            qb = (pysnow.QueryBuilder()
-                    .field('assigned_to').is_empty()
-                    .AND()
-                    .field('assignment_group.name').equals(snow_team)
-                    .AND()
-                    .field('active').equals('true')
-                    .AND()
-                    .field('state').not_equals('6') # not resolved
-                    .AND()
-                    .field('state').not_equals('14') # on hold
-                    .AND()
-                    .field('updated').less_than(minutes_ago)
-                    )
+            qb = qb.AND().field('sys_updated_on').less_than(minutes_ago)
         else:
             if debug:
                 print("running getUnattendedIncidentCount without last updated filter")
-            qb = (pysnow.QueryBuilder()
-                    .field('assigned_to').is_empty()
-                    .AND()
-                    .field('assignment_group.name').equals(snow_team)
-                    .AND()
-                    .field('active').equals('true')
-                    .AND()
-                    .field('state').not_equals('6') # not resolved
-                    .AND()
-                    .field('state').not_equals('14') # on hold
-                    )
+
 
         incident = c.resource(api_path='/table/incident')
         response = incident.get(query=qb)

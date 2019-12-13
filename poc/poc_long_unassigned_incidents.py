@@ -84,7 +84,9 @@ if __name__ == '__main__':
 
     c = pysnow.client.Client(instance=SHH_INSTANCE, user=SHH_USERNAME, password=SHH_PASSWORD)
 
-    minutes_ago = datetime.now() - timedelta(minutes=15)
+    minutes_ago = datetime.now() - timedelta(minutes=20)
+
+    print("less_than: "+minutes_ago.strftime('%Y-%m-%d %H:%M:%S'))
 
     qb = (pysnow.QueryBuilder()
             .field('assigned_to').is_empty()
@@ -93,7 +95,7 @@ if __name__ == '__main__':
             .AND()
             .field('active').equals('true')
             .AND()
-            .field('updated').between(minutes_ago, datetime.now())
+            .field('sys_updated_on').less_than(minutes_ago)
             )
 
     incident = c.resource(api_path='/table/incident')
