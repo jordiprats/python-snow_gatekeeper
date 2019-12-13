@@ -397,17 +397,23 @@ class MainWindow(QMainWindow):
         layout.addWidget(QLabel("refresh interval:", self))
         layout.addWidget(self.check_interval)
 
+        self.unattended_settings_group = QGroupBox("unattended incidents")
+        unattended_settings_group_layout = QtWidgets.QVBoxLayout(self)
+
         self.alert_on_unattended_incidents = QCheckBox('check unattended incidents')
         if check_unattended_incidents:
             self.alert_on_unattended_incidents.setChecked(1)
         else:
             self.alert_on_unattended_incidents.setChecked(0)
-        layout.addWidget(self.alert_on_unattended_incidents)
+        unattended_settings_group_layout.addWidget(self.alert_on_unattended_incidents)
 
         self.tb_unattended_incidents_minutes = QtWidgets.QLineEdit(self)
         self.tb_unattended_incidents_minutes.setText(unattended_incidents_minutes_str)
-        layout.addWidget(QLabel("minutes ago:", self))
-        layout.addWidget(self.tb_unattended_incidents_minutes)
+        unattended_settings_group_layout.addWidget(QLabel("minutes ago: (set it to 0 to disable)", self))
+        unattended_settings_group_layout.addWidget(self.tb_unattended_incidents_minutes)
+
+        self.unattended_settings_group.setLayout(unattended_settings_group_layout)
+        layout.addWidget(self.unattended_settings_group)
 
         self.alert_on_assigned_incidents = QCheckBox('check assigned incidents')
         if check_assigned_incidents:
