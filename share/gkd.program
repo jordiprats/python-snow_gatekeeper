@@ -1,0 +1,11 @@
+[Desktop Entry]
+Encoding=UTF-8
+Name=gatekeeper Desktop
+GenericName=gkd
+Comment=SNOW notificacions
+Exec=sudo python3 /opt/gkd/gatekeeperdesktop.py 
+Icon=/usr/share/pixmaps/gkd.png
+Terminal=false
+Type=Application
+Categories=
+OnlyShowIn=XFCE;
